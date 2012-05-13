@@ -233,7 +233,6 @@ if echo $ENCRYPTION | grep -q 'PSK' ; then
     else
         current_id=`wpa_cli -i $iface add_network | tail -1`
         wpa_cli -i $iface set_network $current_id ssid "\"$NETWORK\""
-        wpa_cli -i $iface set_network $current_id disabled 1
         update_psk "$NETWORK" "$PASS"
     fi
 elif echo $ENCRYPTION | grep -q WEP ; then
