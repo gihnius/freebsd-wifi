@@ -205,14 +205,7 @@ current_id=`check_network "$NETWORK"`
 if [ $current_id -ge 0 ] ; then
     sh -c "dialog --backtitle \"FreeBSD Wifi\" --title \"Connect to Network\" --yesno \"Connect to configured network: $NETWORK ?\" 0 0"
     if [ $? -eq 0 ] ; then
-        wpa_cli -i $iface disconnect
-        ifconfig $iface ssid $NETWORK
-        wpa_cli -i $iface select_network $current_id
-        wpa_cli -i $iface enable_network $current_id
-        wpa_cli -i $iface reconnect
-        dhclient -b $iface
-        echo 'done'
-        exit 0
+        final $NETWORK $current_id
     fi
 fi
 
@@ -236,7 +229,6 @@ if echo $ENCRYPTION | grep -q 'PSK' ; then
         update_psk "$NETWORK" "$PASS"
     fi
 elif echo $ENCRYPTION | grep -q WEP ; then
-	echo FOO
 	exec 3>&1
 	WEPKEY=`dialog --insecure --backtitle "FreeBSD Wifi" \
 	    --title "WEP Setup" --mixedform "" 0 0 0 \
