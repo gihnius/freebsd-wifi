@@ -22,7 +22,7 @@ usage () {
     cat <<EOF
 Usage:
 $0               default
-$0 -e            use saved configured network, do not scan. So make sure the AP exist.
+$0 -l/list       use saved configured network, do not scan. So make sure the AP exist.
 $0 stop          stop wifi connection
 $0 reconfig      re-configure device
 $0 newconf       create new /etc/wpa_supplicant.conf
@@ -75,6 +75,23 @@ recfg_dev () {
     ifconfig $iface up
 }
 
+wpa_lookup () {
+# Try to reach wpa_supplicant. If it isn't running and we can modify the
+# existing system, start it. Otherwise, fail.
+# Here use the existing system script /etc/rc.d/wpa_supplicant
+    (wpa_cli -i $iface ping >/dev/null 2>/dev/null ||	/etc/rc.d/wpa_supplicant start $iface) || \
+	    (dialog --backtitle "FreeBSD Wifi" --title "Error" --msgbox \
+	    "Could not start wpa_supplicant!" 0 0; exit 1) || exit 1
+
+# See if we succeeded
+    wpa_cli -i $iface ping >/dev/null 2>/dev/null
+    if [ $? -ne 0 ] ; then
+	    dialog --backtitle "FreeBSD Wifi" --title "Error" --msgbox \
+	        "Wireless cannot be configured without making changes to the local system!" \ 0 0
+	    exit 1
+    fi
+}
+
 final () {
     local nw=$1
     local nid=$2
@@ -92,7 +109,8 @@ final () {
 case $1 in
     stop)
         stop_wifi ;;
-    -e)
+    -l|list)
+        wpa_lookup
         wpa_cli -i $iface list
         echo "Please enter the network id:"
         read current_id
@@ -151,21 +169,7 @@ fi
 
 ## progress ...
 
-# Try to reach wpa_supplicant. If it isn't running and we can modify the
-# existing system, start it. Otherwise, fail.
-# Here use the existing system script /etc/rc.d/wpa_supplicant
-(wpa_cli -i $iface ping >/dev/null 2>/dev/null ||	/etc/rc.d/wpa_supplicant start $iface) || \
-	(dialog --backtitle "FreeBSD Wifi" --title "Error" --msgbox \
-	"Could not start wpa_supplicant!" 0 0; exit 1) || exit 1
-
-# See if we succeeded
-wpa_cli -i $iface ping >/dev/null 2>/dev/null
-if [ $? -ne 0 ] ; then
-	dialog --backtitle "FreeBSD Wifi" --title "Error" --msgbox \
-	    "Wireless cannot be configured without making changes to the local system!" \ 0 0
-	exit 1
-fi
-
+wpa_lookup
 wpa_cli -i $iface ap_scan 1
 wpa_cli -i $iface scan
 dialog --backtitle "FreeBSD Wifi" --title "Scanning" --ok-label "Skip" \
