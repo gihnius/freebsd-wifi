@@ -4,7 +4,7 @@ It's a shell script based on freebsd installer wlanconfig!
 
 Usage:
 /bin/wifimgr               default
-/bin/wifimgr -e            use saved configured network, do not scan. So make sure the AP exist.
+/bin/wifimgr -l/list       use saved configured network, do not scan. So make sure the AP exist.
 /bin/wifimgr stop          stop wifi connection
 /bin/wifimgr reconfig      re-configure device
 /bin/wifimgr newconf       create new /etc/wpa_supplicant.conf
