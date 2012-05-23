@@ -72,7 +72,7 @@ cfg_dev () {
 }
 
 recfg_dev () {
-    stop_wifi
+    ifconfig $iface down delete
     ifconfig $iface destroy
     ifconfig $phy_iface down
     ifconfig $phy_iface up
