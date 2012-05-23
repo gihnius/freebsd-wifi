@@ -10,7 +10,12 @@
 # default wlan
 iface=wlan0
 # driver device
-phy_iface=ath0
+dev=$(sysctl -n net.wlan.0.%parent)
+if ifconfig $dev >/dev/null 2>&1 ; then
+    phy_iface=$dev
+else
+    phy_iface=ath0
+fi
 # use system wpa_supplicant.conf
 wpa_supplicant_conf=/etc/wpa_supplicant.conf
 # network id -1 non exist
