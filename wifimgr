@@ -168,6 +168,7 @@ else
     chmod 0600 $wpa_supplicant_conf
     echo "ctrl_interface=/var/run/wpa_supplicant" >> $wpa_supplicant_conf
     echo "eapol_version=2" >> $wpa_supplicant_conf
+    echo "fast_reauth=1" >> $wpa_supplicant_conf
     echo "update_config=1" >> $wpa_supplicant_conf
     echo >> $wpa_supplicant_conf
 fi
