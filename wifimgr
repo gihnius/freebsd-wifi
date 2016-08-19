@@ -8,7 +8,7 @@
 #
 
 # default wlan
-iface=wlan0
+iface=${IFACE-'wlan0'}
 # driver device
 dev=$(sysctl -n net.wlan.0.%parent)
 if ifconfig $dev >/dev/null 2>&1 ; then
@@ -40,7 +40,7 @@ EOF
 
 check_network () {
     local _ssid=$1
-    local _id=`wpa_cli -i $iface list_networks | awk '$2~/^'"$_ssid"'$/{print $1}' | head -1`
+    local _id=`wpa_cli -i $iface list_networks | awk -F \t '$2~/^'"$_ssid"'$/{print $1}' | head -1`
     if [ -z $_id ] ; then
         echo -1
     else
@@ -56,7 +56,7 @@ update_psk () {
         exit 1
     fi
     local _id=`check_network "$_ssid"`
-    local _pass=`wpa_passphrase $_ssid $_psk | sed -n 's/[^#]psk=\(.*\)/\1/p'`
+    local _pass=`wpa_passphrase "$_ssid" $_psk | sed -n 's/[^#]psk=\(.*\)/\1/p'`
     wpa_cli -i $iface set_network $_id psk $_pass
 }
 
@@ -68,7 +68,7 @@ stop_wifi () {
 cfg_dev () {
     ifconfig $iface create wlandev $phy_iface
     ifconfig $iface up
-    /etc/rc.d/wpa_supplicant start $iface
+    service wpa_supplicant start $iface
 }
 
 recfg_dev () {
@@ -84,7 +84,7 @@ wpa_lookup () {
 # Try to reach wpa_supplicant. If it isn't running and we can modify the
 # existing system, start it. Otherwise, fail.
 # Here use the existing system script /etc/rc.d/wpa_supplicant
-    (wpa_cli -i $iface ping >/dev/null 2>/dev/null ||	/etc/rc.d/wpa_supplicant start $iface) || \
+    (wpa_cli -i $iface ping >/dev/null 2>/dev/null || service wpa_supplicant start $iface) || \
 	    (dialog --backtitle "FreeBSD Wifi" --title "Error" --msgbox \
 	    "Could not start wpa_supplicant!" 0 0; exit 1) || exit 1
 
@@ -100,8 +100,9 @@ wpa_lookup () {
 final () {
     local nw=$1
     local nid=$2
+	echo $nw
     wpa_cli -i $iface disconnect
-    ifconfig $iface ssid $nw
+    ifconfig $iface ssid "$nw"
     wpa_cli -i $iface select_network $nid
     wpa_cli -i $iface enable_network $nid
     wpa_cli -i $iface reconnect
@@ -116,7 +117,7 @@ case $1 in
         stop_wifi ;;
     -l|list)
         wpa_lookup
-        wpa_cli -i $iface list
+        wpa_cli -i $iface list_networks
         echo "Please enter the network id:"
         read current_id
         if [ $current_id -lt 0 -o $current_id -ge 64 ] ; then
@@ -125,8 +126,8 @@ case $1 in
             echo "Please enter the network id:"
             read current_id
         fi
-        NETWORK=`wpa_cli -i $iface list | awk '{if($1=='"$current_id"'){print $2}}'`
-        final $NETWORK $current_id
+        NETWORK=`wpa_cli -i $iface list_networks | awk -F \t '{if($1=='"$current_id"'){print $2}}'`
+        final "$NETWORK" $current_id
         ;;
     reconfig)
         recfg_dev ;;
@@ -215,7 +216,7 @@ current_id=`check_network "$NETWORK"`
 if [ $current_id -ge 0 ] ; then
     sh -c "dialog --backtitle \"FreeBSD Wifi\" --title \"Connect to Network\" --yesno \"Connect to configured network: $NETWORK ?\" 0 0"
     if [ $? -eq 0 ] ; then
-        final $NETWORK $current_id
+        final "$NETWORK" $current_id
     fi
 fi
 
@@ -265,5 +266,5 @@ else	# Open
     fi
 fi
 
-final $NETWORK $current_id
+final "$NETWORK" $current_id
 
